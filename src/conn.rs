@@ -39,15 +39,13 @@ impl Connection {
         socket::peek(self.socket)
     }
 
-    /// Takes the range params out of the connections received buffer.
+    /// Removes up to `buf.len()` elements from the connection's
+    /// receive buffer and memcopies them into `buf`. Returns the
+    /// amount actually extracted from the receive buffer.
     ///
     /// # Notes
     ///
     /// * Atomic and thread safe operation.
-    ///
-    /// # Panics
-    ///
-    /// * If the passed range is out of bounds.
     pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
         socket::take(self.socket, buf)
     }
