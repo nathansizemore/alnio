@@ -1,0 +1,11 @@
+[package]
+name = "alnio"
+version = "0.1.0"
+authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
+
+[dependencies]
+epoll = "~1"
+lazy_static = "^0.2"
+libc = "^0.2"
+log = "^0.3"
+parking_lot = "^0.2"
