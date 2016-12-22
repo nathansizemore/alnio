@@ -69,6 +69,6 @@ Nathan Sizemore, nathanrsizemore@gmail.com
 altf is available under the MPL-2.0 license. See the LICENSE file for more info.
 
 
-[badge-url]
-[docs-url]
-[epoll-url]
+[badge-url]: https://travis-ci.org/nathansizemore/altf
+[docs-url]: https://docs.rs/epoll
+[epoll-url]: http://man7.org/linux/man-pages/man7/epoll.7.html
