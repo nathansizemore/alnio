@@ -179,9 +179,9 @@ pub fn take(fd: RawFd, buf: &mut [u8]) -> io::Result<usize> {
             let v = sock_buf.extract(buf.len());
             buf.copy_from_slice(&v[..]);
 
-            let len = buf.len() <= v.len() { buf.len() } else { v.len() };
+            let len = if buf.len() <= v.len() { buf.len() } else { v.len() };
             for x in 0..len {
-                buf[x] = unsafe { v.get_unchecked(x) };
+                buf[x] = unsafe { *v.get_unchecked(x) };
             }
 
             Ok(len)
