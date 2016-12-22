@@ -16,6 +16,7 @@ use libc;
 use parking_lot::Mutex;
 
 use buf::Buffer;
+use event_loop;
 
 
 type BufferMap = Mutex<BTreeMap<RawFd, Arc<Buffer>>>;
@@ -162,6 +163,7 @@ pub fn add_to_tx_buf(fd: RawFd, buf: &[u8]) -> io::Result<usize> {
 
     let sock_buf = maybe_buf.unwrap();
     sock_buf.append(buf);
+    let _ = try!(event_loop::needs_write(fd));
 
     Ok(buf.len())
 }

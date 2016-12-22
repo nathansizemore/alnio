@@ -63,6 +63,11 @@ pub fn del_conn(conn: Connection) -> io::Result<()> {
     epoll_del(e)
 }
 
+pub fn needs_write(fd: RawFd) -> io::Result<()> {
+    let e = epoll::Event::new(epoll_events_rw(), fd as u64);
+    epoll_mod(e)
+}
+
 fn event_loop() {
     info!("Starting event loop");
 
@@ -126,8 +131,8 @@ fn handle_read_event(e: &epoll::Event) {
         Some(conn) => match socket::recv(fd) {
             Ok(read) => {
                 debug!("Recv {} bytes from {:?}", read, conn);
-                super::on_recv(conn);
                 epoll_rearm_r(fd);
+                super::on_recv(conn);
             }
             Err(err) => super::on_error(conn, err)
         },
