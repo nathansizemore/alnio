@@ -177,7 +177,6 @@ pub fn take(fd: RawFd, buf: &mut [u8]) -> io::Result<usize> {
     match map_get(&RX_BUF_MAP, fd) {
         Some(sock_buf) => {
             let v = sock_buf.extract(buf.len());
-            buf.copy_from_slice(&v[..]);
 
             let len = if buf.len() <= v.len() { buf.len() } else { v.len() };
             for x in 0..len {
