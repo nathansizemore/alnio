@@ -178,7 +178,13 @@ pub fn take(fd: RawFd, buf: &mut [u8]) -> io::Result<usize> {
         Some(sock_buf) => {
             let v = sock_buf.extract(buf.len());
             buf.copy_from_slice(&v[..]);
-            Ok(v.len())
+
+            let len = buf.len() <= v.len() { buf.len() } else { v.len() };
+            for x in 0..len {
+                buf[x] = unsafe { v.get_unchecked(x) };
+            }
+
+            Ok(len)
         },
         None => Err(Error::new(ErrorKind::InvalidInput, "Unable to find fd"))
     }
