@@ -7,7 +7,7 @@ Asynchronous Linux TCP/IP Framework
 ---
 
 altf is a framework for getting a scalable, read I/O event driven socket server
-up and running quickly. It uses an event loop back by [epoll][epoll-url] with
+up and running quickly. It uses an event loop backed by [epoll][epoll-url] with
 sockets set in Edge Triggered mode. It also handles all of the tedious buffered
 I/O that comes when using epoll in Edge Triggered mode..
 
