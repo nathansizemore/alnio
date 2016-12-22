@@ -16,12 +16,11 @@ use std::io;
 use std::net::{TcpListener, ToSocketAddrs};
 use std::os::unix::io::IntoRawFd;
 
-use conn::Connection;
+pub use conn::Connection;
 
-pub mod conn;
-
+mod buf;
+mod conn;
 mod event_loop;
-mod sockbuf;
 mod socket;
 
 

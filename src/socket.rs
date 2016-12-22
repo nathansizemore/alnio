@@ -10,14 +10,15 @@ use std::io::{self, Error, ErrorKind};
 use std::mem;
 use std::os::unix::io::RawFd;
 use std::sync::Arc;
+use std::usize;
 
 use libc;
 use parking_lot::Mutex;
 
-use sockbuf::SocketBuffer;
+use buf::Buffer;
 
 
-type BufferMap = Mutex<BTreeMap<RawFd, Arc<SocketBuffer>>>;
+type BufferMap = Mutex<BTreeMap<RawFd, Arc<Buffer>>>;
 
 
 lazy_static! {
@@ -64,7 +65,7 @@ pub fn recv(fd: RawFd) -> io::Result<usize> {
         return Err(err);
     }
 
-    let sock_buf = maybe_buf.unwrap();
+    let rx_buf = maybe_buf.unwrap();
 
     const BUF_LEN: usize = 4096;
     let mut buf: [u8; BUF_LEN] = unsafe { mem::uninitialized() };
@@ -72,7 +73,7 @@ pub fn recv(fd: RawFd) -> io::Result<usize> {
 
     // When the fds are set as EPOLLET mode, we need to read until
     // we receive EAGAIN/EWOULDBLOCK
-    let mut num_read: usize = 0;
+    let mut total_recvd: usize = 0;
     loop {
         let r = unsafe { libc::recv(fd, b, BUF_LEN, 0) };
 
@@ -84,13 +85,13 @@ pub fn recv(fd: RawFd) -> io::Result<usize> {
             let err = Error::new(ErrorKind::UnexpectedEof, "EOF");
             return Err(err);
         } else {
-            let read = r as usize;
-            sock_buf.push(&buf[0..read]);
-            num_read += read;
+            let num_read = r as usize;
+            rx_buf.append(&buf[0..num_read]);
+            total_recvd += num_read;
         }
     }
 
-    Ok(num_read)
+    Ok(total_recvd)
 }
 
 /// Sends all available data in current userspace buffer.
@@ -102,7 +103,7 @@ pub fn send(fd: RawFd) -> io::Result<(usize, bool)> {
     }
 
     let sock_buf = maybe_buf.unwrap();
-    let buf = sock_buf.take_all();
+    let buf = sock_buf.extract(usize::MAX);
     let l = buf.len();
     let b = buf.as_ptr() as *const libc::c_void;
     let r = unsafe { libc::send(fd, b, l, 0) };
@@ -135,11 +136,9 @@ pub fn send(fd: RawFd) -> io::Result<(usize, bool)> {
     if sent < buf.len() {
         // If we sent less than we tried to, this is a result of the
         // internel socket's buffer being full, and we need to push
-        // back to the front of our SocketBuffer. This needs pushed
-        // to the front, because these calls are simply atomic, not
-        // sequential and partial sends are no ones friend.
+        // what we didn't send back to the front of the buffer.
         let unsent_buf = &buf[sent..buf.len()];
-        sock_buf.push_front(unsent_buf);
+        sock_buf.prepend(unsent_buf);
         rearm_rw = true;
     }
 
@@ -162,7 +161,7 @@ pub fn add_to_tx_buf(fd: RawFd, buf: &[u8]) -> io::Result<usize> {
     }
 
     let sock_buf = maybe_buf.unwrap();
-    sock_buf.push(buf);
+    sock_buf.append(buf);
 
     Ok(buf.len())
 }
@@ -177,7 +176,7 @@ pub fn peek(fd: RawFd) -> io::Result<usize> {
 pub fn take(fd: RawFd, buf: &mut [u8]) -> io::Result<usize> {
     match map_get(&RX_BUF_MAP, fd) {
         Some(sock_buf) => {
-            let v = sock_buf.take(buf.len());
+            let v = sock_buf.extract(buf.len());
             buf.copy_from_slice(&v[..]);
             Ok(v.len())
         },
@@ -192,7 +191,7 @@ pub fn close(fd: RawFd) -> io::Result<()> {
 
 fn map_add(m: &BufferMap, fd: RawFd) {
     let mut map = (*m).lock();
-    map.insert(fd, Arc::new(SocketBuffer::new()));
+    map.insert(fd, Arc::new(Buffer::new()));
 }
 
 fn map_del(m: &BufferMap, fd: RawFd) {
@@ -200,7 +199,7 @@ fn map_del(m: &BufferMap, fd: RawFd) {
     map.remove(&fd);
 }
 
-fn map_get(m: &BufferMap, fd: RawFd) -> Option<Arc<SocketBuffer>> {
+fn map_get(m: &BufferMap, fd: RawFd) -> Option<Arc<Buffer>> {
     let map = (*m).lock();
     match map.get(&fd) {
         Some(s) => Some((*s).clone()),

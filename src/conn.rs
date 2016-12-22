@@ -25,38 +25,29 @@ impl Connection {
         Connection { socket: socket, addr: addr }
     }
 
+    /// Returns the current number of bytes in this connection's
+    /// receive buffer.
+    pub fn bytes_avail(&self) -> io::Result<usize> {
+        socket::peek(self.socket)
+    }
+
+    /// Removes up to `buf.len()` bytes from this connection's receive buffer
+    /// and copies them into `buf` returning the total amount copied.
+    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
+        socket::take(self.socket, buf)
+    }
+
+    /// Copies `buf` into this connection's transmit buffer.
+    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
+        socket::add_to_tx_buf(self.socket, buf)
+    }
+
     /// Shuts down further transport for this socket, and
     /// informs the remote socket of disconnect.
     pub fn shutdown(&self) -> io::Result<()> {
         let _ = event_loop::del_conn(*self);
         let _ = socket::shutdown(self.socket);
         socket::close(self.socket)
-    }
-
-    /// Returns the current number of bytes available for transfer in the
-    /// connections receive buffer.
-    pub fn peek(&self) -> io::Result<usize> {
-        socket::peek(self.socket)
-    }
-
-    /// Removes up to `buf.len()` elements from the connection's
-    /// receive buffer and memcopies them into `buf`. Returns the
-    /// amount actually extracted from the receive buffer.
-    ///
-    /// # Notes
-    ///
-    /// * Atomic and thread safe operation.
-    pub fn recv(&self, buf: &mut [u8]) -> io::Result<usize> {
-        socket::take(self.socket, buf)
-    }
-
-    /// Transmits data to the remote connection.
-    ///
-    /// # Notes
-    ///
-    /// * Atomic and thread safe operation.
-    pub fn send(&self, buf: &[u8]) -> io::Result<usize> {
-        socket::add_to_tx_buf(self.socket, buf)
     }
 }
 
