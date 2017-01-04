@@ -25,31 +25,31 @@ mod socket;
 
 
 /// on_connect handler
-static mut on_connect_opt: Option<fn(&Connection)> = None;
+static mut ON_CONNECT_OPT: Option<fn(&Connection)> = None;
 
 /// on_recv handler
-static mut on_new_data_opt: Option<fn(&Connection)> = None;
+static mut ON_NEW_DATA_OPT: Option<fn(&Connection)> = None;
 
 /// on_close handler
-static mut on_error_opt: Option<fn(&Connection, io::Error)> = None;
+static mut ON_ERROR_OPT: Option<fn(&Connection, io::Error)> = None;
 
 
 /// Registers a handler to be called every time a new connection has
 /// been established.
 pub fn register_on_connect(h: fn(conn: &Connection)) {
-    unsafe { on_connect_opt = Some(h); }
+    unsafe { ON_CONNECT_OPT = Some(h); }
 }
 
 /// Registers a handler to be called every time there is new data available
 /// from the passed connection.
 pub fn register_on_recv(h: fn(conn: &Connection)) {
-    unsafe { on_new_data_opt = Some(h); }
+    unsafe { ON_NEW_DATA_OPT = Some(h); }
 }
 
 /// Registers a handler to be called every time an error has occurred for
 /// the connection.
 pub fn register_on_error(h: fn(conn: &Connection, err: io::Error)) {
-    unsafe { on_error_opt = Some(h); }
+    unsafe { ON_ERROR_OPT = Some(h); }
 }
 
 /// Starts the server and binds to the passed address.
@@ -108,8 +108,8 @@ fn on_new_connection(conn: Connection) {
     });
 
     unsafe {
-        if on_connect_opt.is_some() {
-            let f = on_connect_opt.as_ref().unwrap();
+        if ON_CONNECT_OPT.is_some() {
+            let f = ON_CONNECT_OPT.as_ref().unwrap();
             f(&conn);
         }
     }
@@ -117,8 +117,8 @@ fn on_new_connection(conn: Connection) {
 
 fn on_recv(conn: Connection) {
     unsafe {
-        if on_new_data_opt.is_some() {
-            let f = on_new_data_opt.as_ref().unwrap();
+        if ON_NEW_DATA_OPT.is_some() {
+            let f = ON_NEW_DATA_OPT.as_ref().unwrap();
             f(&conn);
         }
     }
@@ -128,8 +128,8 @@ fn on_error(conn: Connection, err: io::Error) {
     debug!("Connection {:?} error: {}", conn, err);
 
     unsafe {
-        if on_error_opt.is_some() {
-            let f = on_error_opt.as_ref().unwrap();
+        if ON_ERROR_OPT.is_some() {
+            let f = ON_ERROR_OPT.as_ref().unwrap();
             f(&conn, err);
         }
     }

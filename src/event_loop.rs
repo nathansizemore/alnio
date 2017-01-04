@@ -34,7 +34,7 @@ use socket;
 type ConnectionMap = Mutex<BTreeMap<RawFd, Connection>>;
 
 
-static mut _epfd: RawFd = 0;
+static mut EPFD: RawFd = 0;
 
 lazy_static! {
     static ref CONN_MAP: ConnectionMap = Mutex::new(BTreeMap::new());
@@ -42,7 +42,7 @@ lazy_static! {
 
 
 pub fn init() -> io::Result<()> {
-    unsafe { _epfd = try!(epoll::create(true)); }
+    unsafe { EPFD = try!(epoll::create(true)); }
 
     info!("epfd: {}", epfd());
 
@@ -158,7 +158,7 @@ fn handle_write_event(e: &epoll::Event) {
     }
 }
 
-fn epfd() -> RawFd { unsafe { _epfd } }
+fn epfd() -> RawFd { unsafe { EPFD } }
 
 fn epoll_rearm_r(fd: RawFd) {
     let e = epoll::Event::new(epoll_events_r(), fd as u64);
